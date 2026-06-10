@@ -104,6 +104,23 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'EB Gara
 .msg-error .answer-body{border-top-color:var(--oxblood);color:#e08080;}
 @keyframes fadeSlideIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 .msg-answer,.msg-user{animation:fadeSlideIn .35s ease-out forwards;}
+
+/* API KEY OVERLAY */
+#key-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+#key-modal{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--gold-dim);border-radius:4px;padding:32px 28px;max-width:440px;width:100%;box-shadow:0 8px 48px rgba(0,0,0,.8);text-align:center;}
+#key-modal .modal-cross{font-size:38px;color:var(--gold-dim);margin-bottom:12px;display:block;}
+#key-modal h2{font-family:'Cinzel',serif;font-size:18px;color:var(--gold);letter-spacing:.08em;margin-bottom:10px;}
+#key-modal p{color:var(--parchment-dim);font-size:14px;font-style:italic;line-height:1.7;margin-bottom:20px;}
+#key-modal a{color:var(--gold-dim);}
+#key-input{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:3px;color:var(--ink);font-family:'EB Garamond',serif;font-size:15px;padding:12px 14px;outline:none;margin-bottom:14px;transition:border-color .2s;}
+#key-input:focus{border-color:var(--gold-dim);}
+#key-input::placeholder{color:var(--parchment-dim);opacity:.5;font-style:italic;}
+#key-save-btn{width:100%;background:linear-gradient(135deg,#8a6e30 0%,var(--gold) 100%);border:1px solid var(--gold);color:#0e0906;font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:13px 20px;border-radius:3px;cursor:pointer;margin-bottom:12px;transition:opacity .2s;}
+#key-save-btn:hover{opacity:.85;}
+.key-note{font-size:11.5px;color:var(--parchment-dim);opacity:.7;font-style:italic;}
+#key-settings-btn{position:absolute;top:50%;right:14px;transform:translateY(-50%);background:none;border:1px solid var(--border);color:var(--gold-dim);font-size:11px;font-family:'Cinzel',serif;letter-spacing:.06em;padding:5px 10px;border-radius:2px;cursor:pointer;transition:border-color .2s,color .2s;}
+#key-settings-btn:hover{border-color:var(--gold-dim);color:var(--gold);}
+@media(max-width:400px){#key-settings-btn{display:none;}}
 @media(max-width:600px){
   #header h1{font-size:22px;}
   .answer-body{padding:18px 16px;}
@@ -113,12 +130,25 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'EB Gara
 </style>
 </head>
 <body>
+<div id="key-overlay" style="display:none;">
+  <div id="key-modal">
+    <span class="modal-cross">&#10013;</span>
+    <h2>Enter Your API Key</h2>
+    <p>Ask Doctrine uses the Anthropic API to search the classical commentators. Enter your key below — it is saved only on <strong>this device</strong> and never stored in the app code.<br><br>
+    Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+    <input type="password" id="key-input" placeholder="sk-ant-api03-…" autocomplete="off"/>
+    <button id="key-save-btn" onclick="saveApiKey()">Begin Study &#10022;</button>
+    <div class="key-note">Your key is stored on this device only and is never visible in the app source code.</div>
+  </div>
+</div>
+
 <div id="app">
-<div id="header">
+<div id="header" style="position:relative;">
   <span class="h-orn">&#10022; Established upon the Prophets &amp; Apostles &#10022;</span>
   <h1>Ask Doctrine</h1>
   <div class="h-sub">Classical Theological Reference &middot; KJV &middot; 1600&ndash;1940</div>
   <div class="h-rule"><span style="color:var(--gold-dim)">&#10013;</span></div>
+  <button id="key-settings-btn" onclick="showKeyOverlay()">&#9881; API Key</button>
 </div>
 
 <div id="scroll-area">
@@ -168,8 +198,35 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'EB Gara
 </div>
 
 <script>
-// ── HARDCODED API KEY — replace the text between the quotes with your new key ──
-function getApiKey() { return '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'; }
+// ── API KEY — stored on this device only, never in the code ──────────────────
+function getApiKey(){
+  return localStorage.getItem('ask_doctrine_key')||'';
+}
+function saveApiKey(){
+  const val=document.getElementById('key-input').value.trim();
+  if(!val.startsWith('sk-')){
+    document.getElementById('key-input').style.borderColor='#c0392b';
+    document.getElementById('key-input').placeholder='Key must start with sk-ant-…';
+    return;
+  }
+  localStorage.setItem('ask_doctrine_key',val);
+  document.getElementById('key-overlay').style.display='none';
+}
+function showKeyOverlay(){
+  const k=getApiKey();
+  if(k) document.getElementById('key-input').value=k;
+  document.getElementById('key-overlay').style.display='flex';
+}
+window.addEventListener('DOMContentLoaded',()=>{
+  if(!getApiKey()){
+    document.getElementById('key-overlay').style.display='flex';
+  } else {
+    document.getElementById('key-overlay').style.display='none';
+  }
+  document.getElementById('key-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter') saveApiKey();
+  });
+});
 
 // ── SYSTEM PROMPT ──────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are "Ask Doctrine," a deeply scholarly biblical and theological reference assistant. Answer all questions from the great classical theologians of 1600-1940, grounded in historic Trinitarian Christianity.
